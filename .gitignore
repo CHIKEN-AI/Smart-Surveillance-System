@@ -5,9 +5,10 @@ __pycache__/
 venv/
 .vscode/
 *.sqlite3
-EOF
+
 # Ignore generated snapshots
 Snapshots/
 
 # Ignore logs
 events.log
+EOF
