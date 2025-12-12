@@ -42,6 +42,12 @@ Day 4 — Contour Detection + Bounding Boxes
 - Result: a smooth, stable motion detection system
 
 ---
+Day 5 — Snapshots + Logging
+- System saves images when motion is detected
+- Added a 3s cooldown to avoid spam saves
+- Added event logging with timestamps
+- Created Snapshots/ folder automatically
+
 
 Current Output
 The system can:
@@ -59,13 +65,4 @@ Tools & Technologies
 - VS Code
 - Git & GitHub
 
----
 
-Next Steps (Day 5+)
-- Save snapshots on motion  
-- Create event logs  
-- Add cooldown logic  
-- Optional: record video clips  
-- Optional: add alert system (Telegram / sound)
-
----
