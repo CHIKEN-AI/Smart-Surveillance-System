@@ -2,9 +2,11 @@ import cv2
 import os
 import time
 
-# Create folder if it doesn't exist
+# Create folders if not exist
 if not os.path.exists("Snapshots"):
     os.makedirs("Snapshots")
+if not os.path.exists("Videos"):
+    os.makedirs("Videos")
 
 cap = cv2.VideoCapture(0)
 background = None
@@ -14,6 +16,11 @@ last_saved = 0
 save_delay = 3  # seconds
 
 log_file = open("events.log", "a")
+
+recording = False
+video_writer = None
+video_start_time = 0
+video_duration = 3   # seconds
 
 while True:
     ret, frame = cap.read()
@@ -52,15 +59,40 @@ while True:
         (x, y, w, h) = cv2.boundingRect(contour)
         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-    # Save snapshot & log
+    # -------------------------
+    # START VIDEO RECORDING
+    # -------------------------
+    if motion_detected and not recording:
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        filename = f"Videos/video_{int(time.time())}.avi"
+        video_writer = cv2.VideoWriter(filename, fourcc, 20.0, (frame.shape[1], frame.shape[0]))
+
+        recording = True
+        video_start_time = time.time()
+        print("Recording started:", filename)
+
+    # WRITE FRAMES IF RECORDING
+    if recording:
+        video_writer.write(frame)
+
+        # Stop after 3 seconds
+        if time.time() - video_start_time > video_duration:
+            recording = False
+            video_writer.release()
+            video_writer = None
+            print("Recording stopped.")
+
+    # -------------------------
+    # SNAPSHOT + LOGGING
+    # -------------------------
     if motion_detected:
         current_time = time.time()
 
         if current_time - last_saved > save_delay:
-            filename = f"Snapshots/motion_{int(current_time)}.jpg"
-            cv2.imwrite(filename, frame)
+            snap_name = f"Snapshots/motion_{int(current_time)}.jpg"
+            cv2.imwrite(snap_name, frame)
 
-            print("Snapshot saved:", filename)
+            print("Snapshot saved:", snap_name)
 
             log_file.write(f"Motion detected at {time.ctime(current_time)}\n")
             log_file.flush()

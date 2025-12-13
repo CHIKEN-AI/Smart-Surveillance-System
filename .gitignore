@@ -8,6 +8,7 @@ venv/
 
 # Ignore generated snapshots
 Snapshots/
+Videos/
 
 # Ignore logs
 events.log
