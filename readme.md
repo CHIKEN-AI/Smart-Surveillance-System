@@ -53,10 +53,19 @@ Day 5 — Snapshots + Logging**
 
 Day 6 — Motion-Triggered Video Recording**
 - Added automatic video recording when motion is detected  
-- Records a 3-second clip per event  
+- Records a short video clip per event  
 - Videos saved in `Videos/` folder with timestamped filenames  
 - Added recording state tracking to avoid multiple triggers  
-- Integrated video recording smoothly with existing snapshot + logging system  
+- Integrated video recording with existing snapshot + logging system  
+
+---
+
+Day 7 — Face Detection (Classical CV)**
+- Added face detection using Haar Cascade classifier  
+- Face detection is triggered only when motion is detected  
+- Restricted face detection to motion regions (ROI-based)  
+- Improved semantic understanding of motion (human vs non-human)  
+- Observed limitations of classical face detection under real-world conditions  
 
 ---
 
@@ -65,8 +74,8 @@ The system can:
 - Detect motion in real-time  
 - Highlight moving objects with bounding boxes  
 - Save snapshots and log events  
-- Smooth background updates for stable detection  
 - Record short video clips automatically  
+- Perform motion-triggered face detection  
 - Show motion masks and delta frames for debugging  
 
 ---
