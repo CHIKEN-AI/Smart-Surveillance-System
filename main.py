@@ -1,16 +1,14 @@
 import cv2
 import os
 import time
+from ultralytics import YOLO
 
-face_cascade = cv2.CascadeClassifier(
-    "haarcascade_frontalface_default.xml"
-)
+# --------------------- YOLO MODEL -----------------------
+model = YOLO("yolov8n.pt")   # detects persons (class 0)
 
 # Create folders if not exist
-if not os.path.exists("Snapshots"):
-    os.makedirs("Snapshots")
-if not os.path.exists("Videos"):
-    os.makedirs("Videos")
+os.makedirs("Snapshots", exist_ok=True)
+os.makedirs("Videos", exist_ok=True)
 
 cap = cv2.VideoCapture(0)
 background = None
@@ -23,7 +21,7 @@ log_file = open("events.log", "a")
 recording = False
 video_writer = None
 video_start_time = 0
-video_duration = 5
+video_duration = 5   # seconds
 
 while True:
     ret, frame = cap.read()
@@ -33,6 +31,7 @@ while True:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (21, 21), 0)
 
+    # ---------------- BACKGROUND INITIALIZATION ----------------
     if background is None:
         background = blur.astype("float")
         continue
@@ -62,43 +61,34 @@ while True:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
         motion_regions.append((x, y, w, h))
 
-    # ---------------- FACE DETECTION (ROI BASED) ----------------
-    faces = []
+    # --------------------- YOLO DETECTION ----------------------
+    detected_persons = []
 
-    if motion_detected:
-        for (x, y, w, h) in motion_regions:
-            roi_gray = gray[y:y + h, x:x + w]
+    if motion_detected:  # Run YOLO ONLY IF motion detected
+        results = model(frame, verbose=False)
 
-            detected = face_cascade.detectMultiScale(
-                roi_gray,
-                scaleFactor=1.05,
-                minNeighbors=8,
-                minSize=(60, 60)
-            )
+        for r in results:
+            for box in r.boxes:
+                cls = int(box.cls[0])
+                conf = float(box.conf[0])
+                x1, y1, x2, y2 = box.xyxy[0]
 
-            for (fx, fy, fw, fh) in detected:
-                faces.append((x + fx, y + fy, fw, fh))
+                # Detect only PERSON (COCO class 0)
+                if cls == 0 and conf > 0.5:
+                    detected_persons.append((int(x1), int(y1), int(x2), int(y2)))
 
-    for (fx, fy, fw, fh) in faces:
-        cv2.rectangle(frame, (fx, fy), (fx + fw, fy + fh), (255, 0, 0), 2)
-        cv2.putText(
-            frame,
-            "Face Detected",
-            (fx, fy - 10),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (255, 0, 0),
-            2
-        )
+    # ---------------- DRAW YOLO BOXES -------------------
+    for (x1, y1, x2, y2) in detected_persons:
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        cv2.putText(frame, "PERSON", (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
 
-    # ---------------- VIDEO RECORDING ----------------
+    # ---------------- VIDEO RECORDING -------------------
     if motion_detected and not recording:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         filename = f"Videos/video_{int(time.time())}.avi"
         video_writer = cv2.VideoWriter(
-            filename,
-            fourcc,
-            20.0,
+            filename, fourcc, 20.0,
             (frame.shape[1], frame.shape[0])
         )
         recording = True
@@ -111,20 +101,22 @@ while True:
             video_writer.release()
             video_writer = None
 
-    # ---------------- SNAPSHOT + LOGGING ----------------
+    # ---------------- SNAPSHOTS + LOGGING ----------------
     if motion_detected:
         current_time = time.time()
 
         if current_time - last_saved > save_delay:
             snap_name = f"Snapshots/motion_{int(current_time)}.jpg"
             cv2.imwrite(snap_name, frame)
-            log_file.write(f"Motion detected at {time.ctime(current_time)}\n")
+            log_file.write(f"[MOTION] at {time.ctime(current_time)}\n")
             log_file.flush()
             last_saved = current_time
 
-        if len(faces) > 0:
-            log_file.write(f"Face detected at {time.ctime(current_time)}\n")
+        if len(detected_persons) > 0:
+            log_file.write(f"[PERSON DETECTED] at {time.ctime(current_time)}\n")
+            log_file.flush()
 
+    # ---------------- DISPLAY WINDOWS ---------------------
     cv2.imshow("Color", frame)
     cv2.imshow("Delta", frame_delta)
     cv2.imshow("Thresh", thresh)
